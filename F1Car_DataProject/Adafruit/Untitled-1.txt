@@ -1,0 +1,48 @@
+/*
+ * F1CarTransmitter.c
+ *
+ * Created: 21/05/2024 16:14:03
+ * Author : ferch
+ */ 
+
+
+#define F_CPU 16000000UL
+#include <avr/io.h>
+#include <avr/interrupt.h>
+#include <stdio.h>
+#include <stdint.h>
+#include <string.h>
+#include <stdlib.h>
+#include <util/crc16.h>
+#include <util/delay.h>
+#include "VirtualWire/VirtualWire.h"
+#include "UART/UART0.h"
+
+#undef int
+#undef abs
+#undef double
+#undef float
+#undef round
+
+const char *msg = "hello";
+
+int main(void){
+	sei();
+	initUART09600();
+	writeTextUART("setup");
+	
+	// Initialise the IO and ISR
+	vw_set_ptt_inverted(true);	// Required for DR3100
+	vw_setup();					// 2000 Bits per sec
+	
+	// Flash a light to show transmitting ** PB5
+	DDRD |= (1<<DDB5);
+	
+	while(1){
+		PORTB |= (1<<DDB5);						// Flash a light to show transmitting
+		vw_send((uint8_t *)msg, strlen(msg));
+		vw_wait_tx();							// Wait until the whole message is gone
+		PORTB &= ~(1<<DDB5);					// Flash a light to show transmitting
+		_delay_ms(200);
+	}
+}
